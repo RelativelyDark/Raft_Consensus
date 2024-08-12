@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management App</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        .task {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Management App</h1>
+        <div id="tasks" class="mb-4"></div>
+        <form id="taskForm" class="mb-4">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" name="description" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="status">Status:</label>
+                <select id="status" name="status" class="form-control" required>
+                    <option value="TODO">TODO</option>
+                    <option value="IN_PROGRESS">IN PROGRESS</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Task</button>
+        </form>
+    </div>
+
+    <script>
+        // Function to fetch tasks from the backend
+        function fetchTasks() {
+            fetch('/tasks')
+                .then(response => response.json())
+                .then(tasks => {
+                    const tasksContainer = document.getElementById('tasks');
+                    tasksContainer.innerHTML = '';
+                    tasks.forEach(task => {
+                        const taskElement = document.createElement('div');
+                        taskElement.classList.add('task', 'shadow-sm', 'p-3', 'mb-3', 'bg-white', 'rounded');
+                        taskElement.innerHTML = `
+                            <h3>${task.title}</h3>
+                            <p>${task.description}</p>
+                            <p>Status: ${task.status}</p>
+                            <button class="btn btn-danger" onclick="deleteTask(${task.id})">Delete</button>
+                            <button class="btn btn-info" onclick="updateTask(${task.id})">Update</button>
+                            <hr>
+                        `;
+                        tasksContainer.appendChild(taskElement);
+                    });
+                })
+                .catch(error => console.error('Error fetching tasks:', error));
+        }
+
+        // Event listener for form submission
+        document.getElementById('taskForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Task created successfully');
+                    fetchTasks(); // Refresh tasks after creation
+                } else {
+                    console.error('Error creating task:', response.statusText);
+                }
+            })
+            .catch(error => console.error('Error creating task:', error));
+        });
+
+        // Function to delete a task
+        function deleteTask(taskId) {
+            fetch(`/tasks/${taskId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Task deleted successfully');
+                    fetchTasks(); // Refresh tasks after deletion
+                } else {
+                    console.error('Error deleting task:', response.statusText);
+                }
+            })
+            .catch(error => console.error('Error deleting task:', error));
+        }
+
+        // Function to update a task
+        function updateTask(taskId) {
+            const newTitle = prompt('Enter the updated title:');
+            const newDescription = prompt('Enter the updated description:');
+            const newStatus = prompt('Enter the updated status:');
+            const updatedTask = {
+                title: newTitle,
+                description: newDescription,
+                status: newStatus
+            };
+
+            fetch(`/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedTask)
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Task updated successfully');
+                    fetchTasks(); // Refresh tasks after update
+                } else {
+                    console.error('Error updating task:', response.statusText);
+                }
+            })
+            .catch(error => console.error('Error updating task:', error));
+        }
+
+        // Fetch tasks when the page loads
+        fetchTasks();
+    </script>
+</body>
+</html>
